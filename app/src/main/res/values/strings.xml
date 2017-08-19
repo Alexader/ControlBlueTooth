@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">ControlBlueTooth</string>
+    <string name="show_humidity">湿度：</string>
+    <string name="show_temp">温度：</string>
 </resources>
