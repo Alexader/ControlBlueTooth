@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">ControlBlueTooth</string>
     <string name="show_humidity">湿度：</string>
+    <string name="fan">风扇开关</string>
     <string name="show_temp">温度：</string>
+    <string name="result">风扇开关状态</string>
+    <string name="choice">请选择：</string>
 </resources>
