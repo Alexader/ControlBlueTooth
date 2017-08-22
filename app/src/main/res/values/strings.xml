@@ -5,4 +5,9 @@
     <string name="show_temp">温度：</string>
     <string name="result">风扇开关状态</string>
     <string name="choice">请选择：</string>
+    <string name="setTvalue">设置温度：</string>
+    <string name="setHvalue">设置湿度：</string>
+    <string name="assure">确定</string>
+    <string name="hint">为显示数据请打开蓝牙连接设备</string>
+    <string name="openBluetooth">打开蓝牙</string>
 </resources>
