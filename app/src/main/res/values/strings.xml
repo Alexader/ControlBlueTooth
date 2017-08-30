@@ -9,5 +9,5 @@
     <string name="setHvalue">设置湿度：</string>
     <string name="assure">确定</string>
     <string name="hint">为显示数据请打开蓝牙连接设备</string>
-    <string name="openBluetooth">打开蓝牙</string>
+    <string name="openBluetooth">打开蓝牙设置</string>
 </resources>
