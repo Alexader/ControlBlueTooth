@@ -135,47 +135,16 @@ public class ConnectBluetooth extends Activity {
         }
 
     }
-
+//
 //    private class ConnetThread extends Thread {
 //        public void run() {
-//            try {
-//                InputStream inputStream = btSocket.getInputStream();
-//                byte[] data = new byte[1024];
-//                int len = 0;
-//                String result = "";
 //
-//                while (len != -1) {
-//                    if (inputStream.available() > 0 == false) {
-//                        continue;
-//                    } else {
-//                        try {
-//                            Thread.sleep(500);//等待0.5秒，让数据接收完整
-//                            len = inputStream.read(data);
-//                            result = URLDecoder.decode(new String(data, "utf-8"));
-////                          Log.e("----result：----- :", ">>>" + result);
-//                            Message msg = new Message();
-//                            msg.what = MESSAGE_READ;
-//                            msg.obj = result;
-//                            handler.sendMessage(msg);
 //
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }
-//                inputStream.close();
-//                Log.e("--------- :", "关闭inputStream");
-//                if (btSocket != null) {
-//                    btSocket.close();
-//                }
-//            } catch (IOException e) {
-//                Log.e("TAG", e.toString());
-//            }
 //        }
 //
 //    }
-//
-//
+
+
 //    private Handler handler = new Handler() {
 //        @Override
 //        public void handleMessage(Message msg) {

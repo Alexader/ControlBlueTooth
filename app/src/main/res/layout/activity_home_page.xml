@@ -190,5 +190,22 @@
             />
     </LinearLayout>
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="已配对的设备"
+        />
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/list"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/info"
+        android:textSize="14dp"
+        android:textStyle="bold"
+        android:text="没有设备"/>
+
 
 </android.support.v7.widget.FitWindowsLinearLayout>
