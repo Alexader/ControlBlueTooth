@@ -67,7 +67,21 @@ public class HomePage extends AppCompatActivity {
 
     OutputStream output;
     InputStream input;
-    Handler handler;
+
+    Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what) {
+                case MESSAGE_READ: {
+                    String result = msg.getData().getString("humidity");
+                    showHumid.setText(result);
+                    String temp = msg.getData().getString("temp");
+                    showTmep.setText(temp);
+                }
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -173,11 +187,7 @@ public class HomePage extends AppCompatActivity {
         show_value.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (btSocket == null) {
-                    makeToast("还未连接到蓝牙或者连接蓝牙失败");
-                }
-                ConnectedThread connectedThread = new ConnectedThread(btSocket);
-                connectedThread.start();
+                new ConnectedThread(btSocket).start();
             }
         });
 
@@ -187,46 +197,10 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String send_data = setTemp.getText().toString();
-                try {
-                    output = btSocket.getOutputStream();
-                    input = btSocket.getInputStream();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Log.d("IOError", "cant't connect to outputstream");
-                }
-                //使用write()方法需要处理异常
-                try {
-                    output.write(send_data.getBytes());
-                    byte[] buff = new byte[1024];
-                    int bytes = 0;
-                    bytes = input.read(buff);
-                    String rec = new String(buff, "ISO-8859-1");
-                    rec = rec.substring(0, bytes);
-                    if (bytes != 0) {
-                        makeToast("收到数据" + rec);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+
             }
         });
 
-        handler = new Handler() {
-            @Override
-            public void handleMessage(Message msg) {
-                switch (msg.what) {
-                    case MESSAGE_READ: {
-                        String result = msg.getData().getString("recv");
-                        String data = result.split("\\r\\n")[0];
-                        String temperature = data.split("\n")[1];
-                        String humidity = data.split("\n")[0];
-                        Log.e("----data：----- :", ">>>" + data);
-                        showTmep.setText(temperature);
-                        showHumid.setText(humidity);
-                    }
-                }
-            }
-        };
     }
 
     //用于提醒用户
@@ -259,78 +233,54 @@ public class HomePage extends AppCompatActivity {
     }
 
     // 客户端与服务器建立连接成功后，用ConnectedThread收发数据
-    private class ConnectedThread extends Thread {
-        private final BluetoothSocket socket;
-        private final InputStream inputStream;
-        private final OutputStream outputStream;
+    private class ConnectedThread extends Thread{
+        private BluetoothSocket socket;
 
-        public ConnectedThread(BluetoothSocket socket) {
-            this.socket = socket;
-            InputStream input = null;
-            OutputStream output = null;
+        ConnectedThread(BluetoothSocket soc){
+        this.socket = soc;
+    }
+    @Override
+    public void run(){
+        String recText;
+        try {
+            input = socket.getInputStream();
+            output = socket.getOutputStream();
+        } catch (IOException e){
+            e.printStackTrace();
+        }
 
+        while(socket!=null){
             try {
-                input = socket.getInputStream();
-                output = socket.getOutputStream();
-            } catch (IOException e) {
+                byte[] buff = new byte[1024];
+                int bytes;
+                //读取湿度数据
+                output.write("a".getBytes());
+                bytes = input.read(buff);
+                recText = new String(buff,"ISO-8859-1");
+                recText = recText.substring(0, bytes);
+                Bundle bundle = new Bundle();
+                bundle.putString("humidity", recText);
+                Message message = Message.obtain();
+                message.what = MESSAGE_READ;
+                message.setData(bundle);
+                handler.sendMessage(message);
+
+                //读取温度数据
+                output.write("b".getBytes());
+                bytes = input.read(buff);
+                recText = new String(buff, "ISO-8859-1");
+                recText = recText.substring(0, bytes);
+                bundle.putString("temp", recText);
+                message.what = MESSAGE_READ;
+                message.setData(bundle);
+                handler.sendMessage(message);
+            } catch (IOException e){
                 e.printStackTrace();
             }
-            this.inputStream = input;
-            this.outputStream = output;
+
         }
-
-        public void run() {
-            StringBuilder recvText = new StringBuilder();
-            byte[] buff = new byte[1024];
-            int bytes;
-
-            while (true) {
-                try {
-                    bytes = inputStream.read(buff);
-                    String str = new String(buff, "ISO-8859-1");
-                    str = str.substring(0, bytes);
-
-                    // 收到数据，单片机发送上来的数据以"#"结束，这样手机知道一条数据发送结束
-                    Log.d("read", str);
-                    if (!str.endsWith("#")) {
-                        recvText.append(str);
-                        continue;
-                    }
-                    recvText.append(str.substring(0, str.length() - 1)); // 去除'#'
-
-                    Bundle bundle = new Bundle();
-                    Message message = Message.obtain();
-
-                    bundle.putString("recv", recvText.toString());
-                    message.what = MESSAGE_READ;
-                    message.setData(bundle);
-                    handler.sendMessage(message);
-                    recvText.replace(0, recvText.length(), "");//清空回收数据中的数据
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    break;
-                }
-                catch (Exception e){
-                    Log.d("info", "运行线程");
-                }
-            }
-        }
-
-        public void write(byte[] bytes) {
-            try {
-                outputStream.write(bytes);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        public void cancel() {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        makeToast("蓝牙已丢失");
+    }
     }
 
 }
