@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.Settings;
@@ -25,12 +26,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import org.w3c.dom.Text;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URLDecoder;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Set;
 
@@ -41,20 +45,21 @@ public class HomePage extends AppCompatActivity {
     ArrayAdapter<String> adapter = null;
     ArrayAdapter<String> listAdapter;
     private static final String[] Switch = {"On", "Off"};
+    public final int MESSAGE_READ = 1;
 
-    TextView Temp;
-    TextView Humid;
+
     Spinner on_or_off;
     ListView listView;
     TextView info;
-    EditText setTmep;
+    TextView showTmep;
+    TextView showHumid;
+    EditText setTemp;
     EditText setHumid;
 
     Button openBluetooth;
-    private BluetoothDevice device;
-    private BroadcastReceiver rec;
     Button ensure_temp;
     Button ensure_humid;
+    Button show_value;
 
     BluetoothAdapter bluetoothAdapter;
     public static BluetoothSocket btSocket;
@@ -62,18 +67,19 @@ public class HomePage extends AppCompatActivity {
 
     OutputStream output;
     InputStream input;
+    Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_page);
         on_or_off = (Spinner) findViewById(R.id.spinner);
-        setTmep = (EditText) findViewById(R.id.temp_value);
-        setHumid = (EditText) findViewById(R.id.humid_value);
+        showTmep = (TextView) findViewById(R.id.temp_table);
+        showHumid = (TextView) findViewById(R.id.humidity_show);
 
         //注册监听事件，显示温湿度的元素
-        Temp = (TextView) findViewById(R.id.temp_table);
-        Humid = (TextView) findViewById(R.id.humidity_show);
+        setTemp = (EditText) findViewById(R.id.temp_value);
+        setHumid = (EditText) findViewById(R.id.humid_value);
 
         //设置下拉列表风格
         adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, Switch);
@@ -131,19 +137,18 @@ public class HomePage extends AppCompatActivity {
         // 获取BluetoothAdapter
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
-            Toast.makeText(HomePage.this, "Device does not support Bluetooth",
-                    Toast.LENGTH_SHORT).show();
+            makeToast("Device does not support Bluetooth");
         }
 
         if (!bluetoothAdapter.isEnabled()) {
-            Toast.makeText(HomePage.this, "蓝牙开启成功", Toast.LENGTH_SHORT).show();
+            makeToast("蓝牙开启成功");
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, 1);
         } else {
-            Toast.makeText(HomePage.this, "蓝牙已开启", Toast.LENGTH_SHORT).show();
+            makeToast("蓝牙已开启");
         }
 
-        //跳转到蓝牙设置
+        //搜索并连接蓝牙，更新listview中的内容
         openBluetooth = (Button) findViewById(R.id.openBluetooth);
         try {
             openBluetooth.setOnClickListener(new OnClickListener() {
@@ -164,12 +169,24 @@ public class HomePage extends AppCompatActivity {
             e.printStackTrace();
         }
 
+        show_value = (Button) findViewById(R.id.show_value);
+        show_value.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (btSocket == null) {
+                    makeToast("还未连接到蓝牙或者连接蓝牙失败");
+                }
+                ConnectedThread connectedThread = new ConnectedThread(btSocket);
+                connectedThread.start();
+            }
+        });
 
+        //向单片机发送数据
         ensure_temp = (Button) findViewById(R.id.button1);
         ensure_temp.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                String send_data = setTmep.getText().toString();
+                String send_data = setTemp.getText().toString();
                 try {
                     output = btSocket.getOutputStream();
                     input = btSocket.getInputStream();
@@ -184,15 +201,37 @@ public class HomePage extends AppCompatActivity {
                     int bytes = 0;
                     bytes = input.read(buff);
                     String rec = new String(buff, "ISO-8859-1");
-                    if(bytes != 0)
-                        Toast.makeText(getApplicationContext(),"收到数据", Toast.LENGTH_SHORT).show();
+                    rec = rec.substring(0, bytes);
+                    if (bytes != 0) {
+                        makeToast("收到数据" + rec);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
             }
         });
 
+        handler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                switch (msg.what) {
+                    case MESSAGE_READ: {
+                        String result = msg.getData().getString("recv");
+                        String data = result.split("\\r\\n")[0];
+                        String temperature = data.split("\n")[1];
+                        String humidity = data.split("\n")[0];
+                        Log.e("----data：----- :", ">>>" + data);
+                        showTmep.setText(temperature);
+                        showHumid.setText(humidity);
+                    }
+                }
+            }
+        };
+    }
+
+    //用于提醒用户
+    private void makeToast(String msg){
+        Toast.makeText(HomePage.this, msg, Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -200,20 +239,21 @@ public class HomePage extends AppCompatActivity {
      */
     public void connect(final BluetoothSocket btSocket) {
         try {
+            makeToast("正在连接，请稍等");
             btSocket.connect();//连接
             if (btSocket.isConnected()) {
                 Log.e("----connect--- :", "连接成功");
-                Toast.makeText(getApplicationContext(), "蓝牙连接成功", Toast.LENGTH_SHORT).show();
+                makeToast("蓝牙连接成功");
 
             } else {
-                Toast.makeText(getApplicationContext(), "蓝牙连接失败", Toast.LENGTH_SHORT).show();
+                makeToast("蓝牙连接失败");
                 btSocket.close();
                 listView.setVisibility(View.VISIBLE);
                 Log.e("--------- :", "连接关闭");
             }
         } catch (IOException e) {
             e.printStackTrace();
-            Log.e("crash", "frit");
+            Log.e("crash", "crack");
         }
 
     }
@@ -251,7 +291,7 @@ public class HomePage extends AppCompatActivity {
                     str = str.substring(0, bytes);
 
                     // 收到数据，单片机发送上来的数据以"#"结束，这样手机知道一条数据发送结束
-                    //Log.e("read", str);
+                    Log.d("read", str);
                     if (!str.endsWith("#")) {
                         recvText.append(str);
                         continue;
@@ -259,16 +299,19 @@ public class HomePage extends AppCompatActivity {
                     recvText.append(str.substring(0, str.length() - 1)); // 去除'#'
 
                     Bundle bundle = new Bundle();
-                    Message message = new Message();
+                    Message message = Message.obtain();
 
                     bundle.putString("recv", recvText.toString());
-//                    message.what = RECV_VIEW;
+                    message.what = MESSAGE_READ;
                     message.setData(bundle);
-//                    handler.sendMessage(message);
+                    handler.sendMessage(message);
                     recvText.replace(0, recvText.length(), "");//清空回收数据中的数据
                 } catch (IOException e) {
                     e.printStackTrace();
                     break;
+                }
+                catch (Exception e){
+                    Log.d("info", "运行线程");
                 }
             }
         }
@@ -290,25 +333,4 @@ public class HomePage extends AppCompatActivity {
         }
     }
 
-//    private Handler handler = new Handler() {
-//        @Override
-//        public void handleMessage(Message msg) {
-//            switch (msg.what) {
-//                case MESSAGE_READ:
-//                    String result = (String) msg.obj;
-//                    String data = result.split("\\r\\n")[0];
-//                    Log.e("----data：----- :", ">>>" + data);
-//                    if (i < 6) {
-//                        Editable text = (Editable) btAllData.getText();
-//                        text.append(data);
-//                        btAllData.setText(text + "\r\n");
-//                        i++;
-//                    } else {
-//                        btAllData.setText(data + "\r\n");
-//                        i = 0;
-//                    }
-//                    break;
-//            }
-//        }
-//    };
 }

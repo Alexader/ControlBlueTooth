@@ -19,7 +19,16 @@
         android:id="@+id/openBluetooth"
         android:text="@string/openBluetooth"
         />
-
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:weightSum="2">
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_weight="1">
     <LinearLayout
         android:id="@+id/showTemp"
         android:layout_width="wrap_content"
@@ -46,7 +55,7 @@
             android:background="@android:color/darker_gray"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
-            android:text="20.5"
+            android:text=""
             android:textColor="@android:color/holo_blue_bright" />
     </LinearLayout>
 
@@ -76,9 +85,26 @@
             android:background="@android:color/darker_gray"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
-            android:text="20.5"
+            android:text=""
             android:textColor="@android:color/holo_blue_bright" />
     </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_weight="1">
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:id="@+id/show_value"
+            android:text="@string/show_value"/>
+
+    </LinearLayout>
+
+</LinearLayout>
 
     <TextView
         android:layout_width="fill_parent"
@@ -193,7 +219,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="已配对的设备"
+        android:text="@string/device"
         />
     <ListView
         android:layout_width="match_parent"
@@ -205,7 +231,7 @@
         android:id="@+id/info"
         android:textSize="14dp"
         android:textStyle="bold"
-        android:text="没有设备"/>
+        android:text="@string/none"/>
 
 
 </android.support.v7.widget.FitWindowsLinearLayout>
