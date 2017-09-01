@@ -106,6 +106,32 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> arg0, View arg1,
                                        int arg2, long arg3) {
+                switch (arg2) {
+                    case 0: {
+                        try {
+                            if(btSocket==null)
+                                makeToast("还未连接蓝牙");
+                            else {
+                                output = btSocket.getOutputStream();
+                                output.write("o".getBytes());//选择第一个下拉列表则向单片机发送open风扇额信号
+                            }
+                        } catch (IOException io){
+                            io.printStackTrace();
+                        }
+                    }
+                    case 1: {
+                        try {
+                            if(btSocket==null)
+                                makeToast("还未连接蓝牙");
+                            else {
+                                output = btSocket.getOutputStream();
+                                output.write("c".getBytes());//选择第一个下拉列表则向单片机发送close风扇额信号
+                            }
+                        } catch (IOException io){
+                            io.printStackTrace();
+                        }
+                    }
+                }
             }
 
             @Override
