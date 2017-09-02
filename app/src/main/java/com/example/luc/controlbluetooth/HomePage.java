@@ -46,6 +46,7 @@ public class HomePage extends AppCompatActivity {
     ArrayAdapter<String> listAdapter;
     private static final String[] Switch = {"On", "Off"};
     public final int MESSAGE_READ = 1;
+    public final int READ_TEMP = 2;
 
 
     Spinner on_or_off;
@@ -76,6 +77,9 @@ public class HomePage extends AppCompatActivity {
                 case MESSAGE_READ: {
                     String result = msg.getData().getString("humidity");
                     showHumid.setText(result);
+
+                }
+                case READ_TEMP:{
                     String temp = msg.getData().getString("temp");
                     showTmep.setText(temp);
                 }
@@ -106,6 +110,32 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> arg0, View arg1,
                                        int arg2, long arg3) {
+                switch (arg2) {
+                    case 0: {
+                        try {
+                            if(btSocket==null)
+                                makeToast("还未连接蓝牙");
+                            else {
+                                output = btSocket.getOutputStream();
+                                output.write("o".getBytes());//选择第一个下拉列表则向单片机发送open风扇额信号
+                            }
+                        } catch (IOException io){
+                            io.printStackTrace();
+                        }
+                    }
+                    case 1: {
+                        try {
+                            if(btSocket==null)
+                                makeToast("还未连接蓝牙");
+                            else {
+                                output = btSocket.getOutputStream();
+                                output.write("c".getBytes());//选择第一个下拉列表则向单片机发送close风扇额信号
+                            }
+                        } catch (IOException io){
+                            io.printStackTrace();
+                        }
+                    }
+                }
             }
 
             @Override
@@ -188,6 +218,7 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 new ConnectedThread(btSocket).start();
+                new ConnectedThread1(btSocket).start();
             }
         });
 
@@ -232,19 +263,23 @@ public class HomePage extends AppCompatActivity {
 
     }
 
-    // 客户端与服务器建立连接成功后，用ConnectedThread收发数据
+    // 客户端与服务器建立连接成功后，用ConnectedThread收取湿度数据
     private class ConnectedThread extends Thread{
         private BluetoothSocket socket;
+        private OutputStream outputStream;
+        private InputStream inputStream;
 
         ConnectedThread(BluetoothSocket soc){
-        this.socket = soc;
+            this.socket = soc;
+            this.outputStream = null;
+            this.inputStream = null;
     }
     @Override
     public void run(){
         String recText;
         try {
-            input = socket.getInputStream();
-            output = socket.getOutputStream();
+            this.inputStream = socket.getInputStream();
+            this.outputStream = socket.getOutputStream();
         } catch (IOException e){
             e.printStackTrace();
         }
@@ -254,8 +289,8 @@ public class HomePage extends AppCompatActivity {
                 byte[] buff = new byte[1024];
                 int bytes;
                 //读取湿度数据
-                output.write("a".getBytes());
-                bytes = input.read(buff);
+                outputStream.write("a".getBytes());
+                bytes = inputStream.read(buff);
                 recText = new String(buff,"ISO-8859-1");
                 recText = recText.substring(0, bytes);
                 Bundle bundle = new Bundle();
@@ -264,23 +299,66 @@ public class HomePage extends AppCompatActivity {
                 message.what = MESSAGE_READ;
                 message.setData(bundle);
                 handler.sendMessage(message);
+                Thread.sleep(200);//显示数据太快看着不舒服，单片机发送数据也跟不上
 
-                //读取温度数据
-                output.write("b".getBytes());
-                bytes = input.read(buff);
-                recText = new String(buff, "ISO-8859-1");
-                recText = recText.substring(0, bytes);
-                bundle.putString("temp", recText);
-                message.what = MESSAGE_READ;
-                message.setData(bundle);
-                handler.sendMessage(message);
             } catch (IOException e){
                 e.printStackTrace();
+            } catch (InterruptedException inter){
+                inter.printStackTrace();
             }
 
         }
         makeToast("蓝牙已丢失");
     }
+    }
+
+    // 客户端与服务器建立连接成功后，用ConnectedThread收取湿度数据
+    private class ConnectedThread1 extends Thread{
+        private BluetoothSocket socket;
+        private OutputStream outputStream;
+        private InputStream inputStream;
+
+        ConnectedThread1(BluetoothSocket soc){
+            this.socket = soc;
+            this.outputStream = null;
+            this.inputStream = null;
+        }
+        @Override
+        public void run(){
+            String recText;
+            try {
+                inputStream = socket.getInputStream();
+                outputStream = socket.getOutputStream();
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+
+            while(socket!=null){
+                try {
+                    byte[] buff = new byte[1024];
+                    int bytes;
+                    //读取温度数据
+                    outputStream.write("b".getBytes());
+                    bytes = inputStream.read(buff);
+                    recText = new String(buff,"ISO-8859-1");
+                    recText = recText.substring(0, bytes);
+                    Bundle bundle = new Bundle();
+                    bundle.putString("temp", recText);
+                    Message message = Message.obtain();
+                    message.what = READ_TEMP;
+                    message.setData(bundle);
+                    handler.sendMessage(message);
+                    Thread.sleep(200);//显示数据太快看着不舒服，单片机发送数据也跟不上
+
+                } catch (IOException e){
+                    e.printStackTrace();
+                } catch (InterruptedException inter){
+                    inter.printStackTrace();
+                }
+
+            }
+            makeToast("蓝牙已丢失");
+        }
     }
 
 }
