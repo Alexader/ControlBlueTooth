@@ -61,6 +61,7 @@ public class HomePage extends AppCompatActivity {
     Button ensure_temp;
     Button ensure_humid;
     Button show_value;
+    Button show_value1;
 
     BluetoothAdapter bluetoothAdapter;
     public static BluetoothSocket btSocket;
@@ -217,19 +218,48 @@ public class HomePage extends AppCompatActivity {
         show_value.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                new ConnectedThread(btSocket).start();
                 new ConnectedThread1(btSocket).start();
             }
         });
 
-        //向单片机发送数据
+        show_value1 = (Button) findViewById(R.id.show_value1);
+        show_value1.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new ConnectedThread(btSocket).start();
+            }
+        });
+
+        //向单片机发送温度数据
         ensure_temp = (Button) findViewById(R.id.button1);
         ensure_temp.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                String send_data = setTemp.getText().toString();
-
+                String send_data = setTemp.getText().toString()+'t';
+                try {
+                    OutputStream output = btSocket.getOutputStream();
+                    output.write(send_data.getBytes());
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
             }
+
+        });
+
+        //向单片机发送湿度数据
+        ensure_humid = (Button) findViewById(R.id.button2);
+        ensure_humid.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String send_data = setTemp.getText().toString()+'h';
+                try {
+                    OutputStream output = btSocket.getOutputStream();
+                    output.write(send_data.getBytes());
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+
         });
 
     }
@@ -360,5 +390,4 @@ public class HomePage extends AppCompatActivity {
             makeToast("蓝牙已丢失");
         }
     }
-
 }

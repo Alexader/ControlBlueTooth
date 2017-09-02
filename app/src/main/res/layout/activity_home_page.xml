@@ -95,11 +95,19 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:weightSum="2">
         <Button
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
             android:id="@+id/show_value"
+            android:layout_weight="1"
+            android:text="@string/show_value"/>
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/show_value1"
+            android:layout_weight="1"
             android:text="@string/show_value"/>
 
     </LinearLayout>
