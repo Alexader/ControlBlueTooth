@@ -11,6 +11,8 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.Settings;
+import android.support.annotation.MainThread;
+import android.support.annotation.WorkerThread;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -37,7 +39,10 @@ import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static android.widget.AdapterView.*;
 
@@ -69,6 +74,10 @@ public class HomePage extends AppCompatActivity {
 
     OutputStream output;
     InputStream input;
+
+    Timer timer = new Timer(true);
+    Timer timer1 = new Timer(true);
+
 
     Handler handler = new Handler() {
         @Override
@@ -218,8 +227,22 @@ public class HomePage extends AppCompatActivity {
         show_value.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                new ConnectedThread(btSocket).start();
-//                new ConnectedThread1(btSocket).start();
+                TimerTask tempTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        UpdateText tempText = new UpdateText(btSocket, showTmep, "a");
+                        tempText.execute();
+                    }
+                };
+                TimerTask humidTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        UpdateText updateText = new UpdateText(btSocket, showHumid, "b");
+                        updateText.execute();
+                    }
+                };
+                timer.schedule(humidTask, 1000, 1000);
+                timer1.schedule(tempTask, 1500, 1000);
             }
         });
 
@@ -288,145 +311,129 @@ public class HomePage extends AppCompatActivity {
 
     }
 
-    private void deal(OutputStream outputStream, BufferedInputStream inputStream,
-                                   String sendText, String id, int msg){
-        String recText;
-        synchronized(outputStream) {
-            try {
-                byte[] buff = new byte[100];
-                int bytes;
-                //读取湿度数据
-                outputStream.write(sendText.getBytes());
-                bytes = inputStream.read(buff);
-                recText = new String(buff, "ISO-8859-1");
-                recText = recText.substring(0, bytes);
-                Bundle bundle = new Bundle();
-                bundle.putString(id, recText);
-                Message message = Message.obtain();
-                message.what = msg;
-                message.setData(bundle);
-                handler.sendMessage(message);
-                Thread.sleep(200);//显示数据太快看着不舒服，单片机发送数据也跟不上
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-            }
-        }
-    }
 
-    // 客户端与服务器建立连接成功后，用ConnectedThread收取湿度数据
-    private class ConnectedThread extends Thread{
+    private class UpdateText extends AsyncTask<Void, String, Void>{
         private BluetoothSocket socket;
         private OutputStream outputStream;
         private BufferedInputStream inputStream;
+        private TextView tx;
+        private String option;
 
-        ConnectedThread(BluetoothSocket soc){
-            this.socket = soc;
-            this.outputStream = null;
-            this.inputStream = null;
-    }
-    @Override
-    public void run(){
-        String recText;
-        String recTemp;
-        try {
-            this.inputStream = new BufferedInputStream(socket.getInputStream());
-            this.outputStream = socket.getOutputStream();
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-
-        while(socket!=null){
-            synchronized(inputStream) {
-                try {
-                    byte[] buff = new byte[100];
-                    int bytes;
-                    //读取湿度数据
-                    outputStream.write("a".getBytes());
-                    bytes = inputStream.read(buff);
-                    recText = new String(buff, "ISO-8859-1");
-                    recText = recText.substring(0, bytes);
-                    Bundle bundle = new Bundle();
-                    bundle.putString("humid", recText);
-                    Message message = Message.obtain();
-                    message.what = MESSAGE_READ;
-                    message.setData(bundle);
-                    handler.sendMessage(message);
-
-                    outputStream.flush();
-                    Thread.sleep(100);
-
-                    byte[] buff_temp = new byte[100];
-                    outputStream.write("b".getBytes());
-                    bytes = inputStream.read(buff_temp);
-                    recTemp = new String(buff_temp, "ISO-8859-1");
-                    recTemp = recTemp.substring(0,bytes);
-                    Bundle bundle_temp = new Bundle();
-                    Message message_temp = Message.obtain();
-                    bundle_temp.putString("temp", recTemp);
-                    message_temp.what = READ_TEMP;
-                    message_temp.setData(bundle_temp);
-                    handler.sendMessage(message_temp);
-
-                    Thread.sleep(100);//显示数据太快看着不舒服，单片机发送数据也跟不上
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException ie) {
-                    ie.printStackTrace();
-                }
+        public UpdateText(BluetoothSocket soc, TextView textView, String opt){
+            socket = soc;
+            tx = textView;
+            option = opt;
+            try{
+                inputStream = new BufferedInputStream(socket.getInputStream());
+                outputStream = socket.getOutputStream();
+            } catch (IOException io){
+                io.printStackTrace();
             }
         }
-        makeToast("蓝牙已丢失");
-    }
+        @Override
+        protected void onPreExecute(){
+
+        }
+
+        @Override
+        protected Void doInBackground(Void...params){
+            String recText;
+            try {
+                byte[] buff = new byte[100];
+                int bytes;
+                //读取湿度或者温度数据
+                outputStream.write(option.getBytes());
+                bytes = inputStream.read(buff);
+                recText = new String(buff, "ISO-8859-1");
+                recText = recText.substring(0, bytes);
+                publishProgress(recText);
+                return null;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        @Override
+        protected void onProgressUpdate(String...results){
+            super.onProgressUpdate(results);
+            tx.setText(results[0]);
+        }
+
+        @Override
+        protected void onCancelled(){
+            try {
+                inputStream.close();
+                outputStream.close();
+            } catch (IOException io){
+                io.printStackTrace();
+            }
+        }
     }
 
     // 客户端与服务器建立连接成功后，用ConnectedThread收取湿度数据
-//    private class ConnectedThread1 extends Thread{
+//    private class ConnectedThread extends Thread{
 //        private BluetoothSocket socket;
 //        private OutputStream outputStream;
 //        private BufferedInputStream inputStream;
 //
-//        ConnectedThread1(BluetoothSocket soc){
+//        ConnectedThread(BluetoothSocket soc){
 //            this.socket = soc;
 //            this.outputStream = null;
 //            this.inputStream = null;
+//    }
+//    @Override
+//    public void run(){
+//        String recText;
+//        String recTemp;
+//        try {
+//            this.inputStream = new BufferedInputStream(socket.getInputStream());
+//            this.outputStream = socket.getOutputStream();
+//        } catch (IOException e){
+//            e.printStackTrace();
 //        }
-//        @Override
-//        public void run(){
-//            String recText;
-//            try {
-//                this.inputStream = new BufferedInputStream(socket.getInputStream());
-//                this.outputStream = socket.getOutputStream();
-//            } catch (IOException e){
-//                e.printStackTrace();
-//            }
 //
-//            while(socket!=null){
-//                synchronized(inputStream) {
-//                    try {
-//                        byte[] buff = new byte[100];
-//                        int bytes;
-//                        //读取湿度数据
-//                        outputStream.write("b".getBytes());
-//                        bytes = inputStream.read(buff);
-//                        recText = new String(buff, "ISO-8859-1");
-//                        recText = recText.substring(0, bytes);
-//                        Bundle bundle = new Bundle();
-//                        bundle.putString("temp", recText);
-//                        Message message = Message.obtain();
-//                        message.what = READ_TEMP;
-//                        message.setData(bundle);
-//                        handler.sendMessage(message);
-//                        Thread.sleep(100);//显示数据太快看着不舒服，单片机发送数据也跟不上
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    } catch (InterruptedException ie) {
-//                        ie.printStackTrace();
-//                    }
+//        while(socket!=null){
+//            synchronized(inputStream) {
+//                try {
+//                    byte[] buff = new byte[100];
+//                    int bytes;
+//                    //读取湿度数据
+//                    outputStream.write("a".getBytes());
+//                    bytes = inputStream.read(buff);
+//                    recText = new String(buff, "ISO-8859-1");
+//                    recText = recText.substring(0, bytes);
+//                    Bundle bundle = new Bundle();
+//                    bundle.putString("humid", recText);
+//                    Message message = Message.obtain();
+//                    message.what = MESSAGE_READ;
+//                    message.setData(bundle);
+//                    handler.sendMessage(message);
+//
+//                    Thread.sleep(100);
+//
+//                    byte[] buff_temp = new byte[100];
+//                    outputStream.write("b".getBytes());
+//                    bytes = inputStream.read(buff_temp);
+//                    recTemp = new String(buff_temp, "ISO-8859-1");
+//                    recTemp = recTemp.substring(0,bytes);
+//                    Bundle bundle_temp = new Bundle();
+//                    Message message_temp = Message.obtain();
+//                    bundle_temp.putString("temp", recTemp);
+//                    message_temp.what = READ_TEMP;
+//                    message_temp.setData(bundle_temp);
+//                    handler.sendMessage(message_temp);
+//
+//                    Thread.sleep(100);//显示数据太快看着不舒服，单片机发送数据也跟不上
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                } catch (InterruptedException ie) {
+//                    ie.printStackTrace();
 //                }
 //            }
-//            makeToast("蓝牙已丢失");
 //        }
+//        makeToast("蓝牙已丢失");
 //    }
+//    }
+
 }
