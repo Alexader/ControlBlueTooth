@@ -34,20 +34,20 @@ public class HomePage extends AppCompatActivity {
 
     ArrayAdapter<String> adapter = null;
     ArrayAdapter<String> listAdapter;
-    private static final String[] Switch = {"On", "Off"};
+    private static final String[] Switch = {"On", "Off"};//管理风扇的开关
 
 
-    Spinner on_or_off;
-    ListView listView;
-    TextView info;
+    Spinner on_or_off;//选择风扇开关的下拉列表
+    ListView listView;//显示以配对的蓝牙
+    TextView info;//当没有配对蓝牙是显示的提示
     TextView showTmep;
     TextView showHumid;
     EditText setTemp;
     EditText setHumid;
 
     Button openBluetooth;
-    Button ensure_temp;
-    Button ensure_humid;
+    Button ensure_temp;//发送温度阙值
+    Button ensure_humid;//发送湿度阙值
     Button show_value;
 
     BluetoothAdapter bluetoothAdapter;
@@ -153,7 +153,7 @@ public class HomePage extends AppCompatActivity {
         // 获取BluetoothAdapter
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter == null) {
-            makeToast("Device does not support Bluetooth");
+            makeToast("设备不支持蓝牙");
         }
 
         if (!bluetoothAdapter.isEnabled()) {
@@ -189,6 +189,9 @@ public class HomePage extends AppCompatActivity {
         show_value.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
+                /*和单片机的通信协议是发送“a“表示想要获取温度数据
+                发送“b”表示想要获取湿度数据
+                 */
                 TimerTask tempTask = new TimerTask() {
                     @Override
                     public void run() {
@@ -203,6 +206,9 @@ public class HomePage extends AppCompatActivity {
                         updateText.execute();
                     }
                 };
+                /*获取数据的速度是每一秒一次，两次获取数据叉开500ms，
+                而且向单片机问询数据的时间间隔不宜太短，单片机处理能力有限
+                 */
                 timer.schedule(humidTask, 1000, 1000);
                 timer1.schedule(tempTask, 1500, 1000);
             }
@@ -273,7 +279,7 @@ public class HomePage extends AppCompatActivity {
 
     }
 
-
+//温度和湿度数据的获取以及显示需要异步执行
     private class UpdateText extends AsyncTask<Void, String, Void> {
         private BluetoothSocket socket;
         private OutputStream outputStream;
@@ -302,14 +308,15 @@ public class HomePage extends AppCompatActivity {
         protected Void doInBackground(Void... params) {
             String recText;
             try {
-                byte[] buff = new byte[100];
+                byte[] buff = new byte[100];//手动获取缓冲区
                 int bytes;
                 //读取湿度或者温度数据
                 outputStream.write(option.getBytes());
                 bytes = inputStream.read(buff);
+                //从单片机获取的字节数据，需要指定译码格式
                 recText = new String(buff, "ISO-8859-1");
                 recText = recText.substring(0, bytes);
-                publishProgress(recText);
+                publishProgress(recText);//将获取的数据移交到onProgressUpdate()方法处理，因为需要更新UI
                 return null;
             } catch (IOException e) {
                 e.printStackTrace();
