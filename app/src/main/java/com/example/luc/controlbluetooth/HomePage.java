@@ -3,19 +3,10 @@ package com.example.luc.controlbluetooth;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.Message;
-import android.provider.Settings;
-import android.support.annotation.MainThread;
-import android.support.annotation.WorkerThread;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Editable;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -27,19 +18,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-
-import org.w3c.dom.Text;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URLDecoder;
-import java.sql.Time;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -51,8 +35,6 @@ public class HomePage extends AppCompatActivity {
     ArrayAdapter<String> adapter = null;
     ArrayAdapter<String> listAdapter;
     private static final String[] Switch = {"On", "Off"};
-    public final int MESSAGE_READ = 1;
-    public final int READ_TEMP = 2;
 
 
     Spinner on_or_off;
@@ -73,29 +55,9 @@ public class HomePage extends AppCompatActivity {
     ArrayList<String> deviceArray;
 
     OutputStream output;
-    InputStream input;
 
     Timer timer = new Timer(true);
     Timer timer1 = new Timer(true);
-
-
-    Handler handler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            switch (msg.what) {
-                case MESSAGE_READ: {
-                    String result = msg.getData().getString("humid");
-                    showHumid.setText(result);
-
-                }
-                case READ_TEMP:{
-                    String temp = msg.getData().getString("temp");
-                    showTmep.setText(temp);
-                }
-            }
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -158,7 +120,7 @@ public class HomePage extends AppCompatActivity {
         info = (TextView) findViewById(R.id.info);
 
         listView.setEmptyView(info);
-        listAdapter = new ArrayAdapter<String>(HomePage.this,
+        listAdapter = new ArrayAdapter<>(HomePage.this,
                 android.R.layout.simple_list_item_1, deviceArray);
         listView.setAdapter(listAdapter);
 
@@ -312,31 +274,32 @@ public class HomePage extends AppCompatActivity {
     }
 
 
-    private class UpdateText extends AsyncTask<Void, String, Void>{
+    private class UpdateText extends AsyncTask<Void, String, Void> {
         private BluetoothSocket socket;
         private OutputStream outputStream;
         private BufferedInputStream inputStream;
         private TextView tx;
         private String option;
 
-        public UpdateText(BluetoothSocket soc, TextView textView, String opt){
+        private UpdateText(BluetoothSocket soc, TextView textView, String opt) {
             socket = soc;
             tx = textView;
             option = opt;
-            try{
+            try {
                 inputStream = new BufferedInputStream(socket.getInputStream());
                 outputStream = socket.getOutputStream();
-            } catch (IOException io){
+            } catch (IOException io) {
                 io.printStackTrace();
             }
         }
+
         @Override
-        protected void onPreExecute(){
+        protected void onPreExecute() {
 
         }
 
         @Override
-        protected Void doInBackground(Void...params){
+        protected Void doInBackground(Void... params) {
             String recText;
             try {
                 byte[] buff = new byte[100];
@@ -355,85 +318,19 @@ public class HomePage extends AppCompatActivity {
         }
 
         @Override
-        protected void onProgressUpdate(String...results){
+        protected void onProgressUpdate(String... results) {
             super.onProgressUpdate(results);
             tx.setText(results[0]);
         }
 
         @Override
-        protected void onCancelled(){
+        protected void onCancelled() {
             try {
                 inputStream.close();
                 outputStream.close();
-            } catch (IOException io){
+            } catch (IOException io) {
                 io.printStackTrace();
             }
         }
     }
-
-    // 客户端与服务器建立连接成功后，用ConnectedThread收取湿度数据
-//    private class ConnectedThread extends Thread{
-//        private BluetoothSocket socket;
-//        private OutputStream outputStream;
-//        private BufferedInputStream inputStream;
-//
-//        ConnectedThread(BluetoothSocket soc){
-//            this.socket = soc;
-//            this.outputStream = null;
-//            this.inputStream = null;
-//    }
-//    @Override
-//    public void run(){
-//        String recText;
-//        String recTemp;
-//        try {
-//            this.inputStream = new BufferedInputStream(socket.getInputStream());
-//            this.outputStream = socket.getOutputStream();
-//        } catch (IOException e){
-//            e.printStackTrace();
-//        }
-//
-//        while(socket!=null){
-//            synchronized(inputStream) {
-//                try {
-//                    byte[] buff = new byte[100];
-//                    int bytes;
-//                    //读取湿度数据
-//                    outputStream.write("a".getBytes());
-//                    bytes = inputStream.read(buff);
-//                    recText = new String(buff, "ISO-8859-1");
-//                    recText = recText.substring(0, bytes);
-//                    Bundle bundle = new Bundle();
-//                    bundle.putString("humid", recText);
-//                    Message message = Message.obtain();
-//                    message.what = MESSAGE_READ;
-//                    message.setData(bundle);
-//                    handler.sendMessage(message);
-//
-//                    Thread.sleep(100);
-//
-//                    byte[] buff_temp = new byte[100];
-//                    outputStream.write("b".getBytes());
-//                    bytes = inputStream.read(buff_temp);
-//                    recTemp = new String(buff_temp, "ISO-8859-1");
-//                    recTemp = recTemp.substring(0,bytes);
-//                    Bundle bundle_temp = new Bundle();
-//                    Message message_temp = Message.obtain();
-//                    bundle_temp.putString("temp", recTemp);
-//                    message_temp.what = READ_TEMP;
-//                    message_temp.setData(bundle_temp);
-//                    handler.sendMessage(message_temp);
-//
-//                    Thread.sleep(100);//显示数据太快看着不舒服，单片机发送数据也跟不上
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                } catch (InterruptedException ie) {
-//                    ie.printStackTrace();
-//                }
-//            }
-//        }
-//        makeToast("蓝牙已丢失");
-//    }
-//    }
-
 }
