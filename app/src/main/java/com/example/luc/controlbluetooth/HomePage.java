@@ -90,6 +90,7 @@ public class HomePage extends AppCompatActivity {
                             else {
                                 output = btSocket.getOutputStream();
                                 output.write("o".getBytes());//选择第一个下拉列表则向单片机发送open风扇额信号
+                                makeToast("发送成功");
                             }
                         } catch (IOException io){
                             io.printStackTrace();
@@ -102,6 +103,7 @@ public class HomePage extends AppCompatActivity {
                             else {
                                 output = btSocket.getOutputStream();
                                 output.write("c".getBytes());//选择第一个下拉列表则向单片机发送close风扇额信号
+                                makeToast("发送成功");
                             }
                         } catch (IOException io){
                             io.printStackTrace();
@@ -220,10 +222,12 @@ public class HomePage extends AppCompatActivity {
         ensure_temp.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                String send_data = setTemp.getText().toString()+'t';
+                byte send_data = (byte)Integer.parseInt(setTemp.getText().toString());
                 try {
                     OutputStream output = btSocket.getOutputStream();
-                    output.write(send_data.getBytes());
+                    output.write(send_data);
+                    output.write("t".getBytes());
+                    makeToast("发送成功");
                 } catch (IOException e){
                     e.printStackTrace();
                 }
@@ -236,10 +240,12 @@ public class HomePage extends AppCompatActivity {
         ensure_humid.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                String send_data = setTemp.getText().toString()+'h';
+                byte send_data = (byte)Integer.parseInt(setTemp.getText().toString());
                 try {
                     OutputStream output = btSocket.getOutputStream();
-                    output.write(send_data.getBytes());
+                    output.write(send_data);
+                    output.write("h".getBytes());
+                    makeToast("发送成功");
                 } catch (IOException e){
                     e.printStackTrace();
 
