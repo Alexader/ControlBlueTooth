@@ -10,4 +10,9 @@ ____
 * 可以在手机上输入希望设置温度和湿度阙值，并通过HC-05发送到单片机中进行控制
 * 可以向单片机发送控制命令控制风扇的开关
 
+##### 使用说明
+1. APP界面说明
+![annotation](https://github.com/Alexader/ControlBlueTooth/blob/master/annotation.jpg "图片注释")
+2. APP运行时的截屏
+![screenshot](https://github.com/Alexader/ControlBlueTooth/blob/master/screenshot.jpg "运行截屏")
 
