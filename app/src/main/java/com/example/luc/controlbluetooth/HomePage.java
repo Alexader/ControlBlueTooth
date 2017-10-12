@@ -82,33 +82,16 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> arg0, View arg1,
                                        int arg2, long arg3) {
-                switch (arg2) {
-                    case 0: {
-                        try {
-                            if(btSocket==null)
-                                makeToast("还未连接蓝牙");
-                            else {
-                                output = btSocket.getOutputStream();
-                                output.write("o".getBytes());//选择第一个下拉列表则向单片机发送open风扇额信号
-                                makeToast("发送成功");
-                            }
-                        } catch (IOException io){
-                            io.printStackTrace();
-                        }
+                try {
+                    if(btSocket==null)
+                        makeToast("还未连接蓝牙");
+                    else {
+                        output = btSocket.getOutputStream();
+                        output.write("o".getBytes());//选择第一个下拉列表则向单片机发送open风扇额信号
+                        makeToast("发送成功");
                     }
-                    case 1: {
-                        try {
-                            if(btSocket==null)
-                                makeToast("还未连接蓝牙");
-                            else {
-                                output = btSocket.getOutputStream();
-                                output.write("c".getBytes());//选择第一个下拉列表则向单片机发送close风扇额信号
-                                makeToast("发送成功");
-                            }
-                        } catch (IOException io){
-                            io.printStackTrace();
-                        }
-                    }
+                } catch (IOException io){
+                    io.printStackTrace();
                 }
             }
 
@@ -222,11 +205,11 @@ public class HomePage extends AppCompatActivity {
         ensure_temp.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                byte send_data = (byte)Integer.parseInt(setTemp.getText().toString());
+                Integer send_data = Integer.parseInt(setTemp.getText().toString());
                 try {
                     OutputStream output = btSocket.getOutputStream();
-                    output.write(send_data);
                     output.write("t".getBytes());
+                    output.write(send_data.byteValue());
                     makeToast("发送成功");
                 } catch (IOException e){
                     e.printStackTrace();
@@ -240,12 +223,17 @@ public class HomePage extends AppCompatActivity {
         ensure_humid.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
-                byte send_data = (byte)Integer.parseInt(setTemp.getText().toString());
+                Integer send_data = Integer.parseInt(setTemp.getText().toString());
                 try {
-                    OutputStream output = btSocket.getOutputStream();
-                    output.write(send_data);
-                    output.write("h".getBytes());
-                    makeToast("发送成功");
+                    if(btSocket==null) {
+                        makeToast("未连接蓝牙");
+                    } else {
+                        OutputStream output = btSocket.getOutputStream();
+                        output.write("h".getBytes());
+                        output.write(send_data.byteValue());
+                        makeToast("发送成功");
+                    }
+
                 } catch (IOException e){
                     e.printStackTrace();
 
