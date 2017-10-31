@@ -1,5 +1,11 @@
 手机串口蓝牙APP简介
-____
+
+***
+
+##### 编译
+
+Android Studio版本：AndroidStudio2.3及以上
+
 ##### Android手机要求
 * 蓝牙3.0及以上
 * Android系统minSdkVersion 15，暂时只能是Android手机，平板没有进行专门设计
@@ -12,7 +18,7 @@ ____
 
 ##### 使用说明
 1. APP界面说明
-![annotation](https://github.com/Alexader/ControlBlueTooth/blob/master/annotation.jpg "图片注释")
+  ![annotation](https://github.com/Alexader/ControlBlueTooth/blob/master/annotation.jpg "图片注释")
 2. APP运行时的截屏
-![screenshot](https://github.com/Alexader/ControlBlueTooth/blob/master/screenshot.jpg "运行截屏")
+  ![screenshot](https://github.com/Alexader/ControlBlueTooth/blob/master/screenshot.jpg "运行截屏")
 
